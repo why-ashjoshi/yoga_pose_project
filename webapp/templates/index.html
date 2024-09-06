@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoga Pose Classification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Yoga Pose Classification</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="start">Start Webcam</button>
+    <button id="stop">Stop Webcam</button>
+    <p id="prediction">Prediction: </p>
+    
+    <script>
+        const video = document.getElementById('video');
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const predictionElement = document.getElementById('prediction');
+
+        let stream = null;
+        let intervalId = null;
+
+        startButton.addEventListener('click', async () => {
+            // Start the webcam
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+                
+                // Start sending frames to the server
+                intervalId = setInterval(() => {
+                    captureFrame();
+                }, 1000); // Capture every second
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            // Stop the webcam
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        });
+
+        async function captureFrame() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/jpeg');
+            
+            // Send the frame to the server
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData })
+            });
+            
+            const result = await response.json();
+            predictionElement.textContent = `Yoga Pose: ${result.class}`;
+        }
+    </script>
+</body>
+</html>
