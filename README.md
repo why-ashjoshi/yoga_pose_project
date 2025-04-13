@@ -1,1 +1,1 @@
-# yoga_pose_detection
+# yoga_pose_project
